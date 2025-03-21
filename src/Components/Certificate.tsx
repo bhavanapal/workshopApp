@@ -1,7 +1,8 @@
 import {jsPDF} from "jspdf";
-import { useState } from "react";
-import {storage,db} from "../config/Firebase";
-import { useFormDataContext } from "../Context/FormContext";
+import { useEffect, useState } from "react";
+import {useParams} from "react-router-dom";
+import {ref, get} from 'firebase/database';
+import { database } from "../config/Firebase";
 
 type CertificateType={
     collegeName : string;
@@ -11,20 +12,42 @@ type CertificateType={
     studentName : string;
 }
 
-const Certificate = ({collegeName,workshopName ,date ,time,studentName}:CertificateType) => {
- const [loading, setLoading] = useState(false);
- const {formData} = useFormDataContext();
+const Certificate = ({collegeName,workshopName ,date ,time,studentName}:CertificateType) => { 
+const [certificate, setCertificateData] = useState<any>();
+const {Id} = useParams();
 
 
- const generateCertificate = () =>{
-    if(!formData) return;
-    setLoading(true);
+// fetch the certificate data from firebase
+useEffect(() => {
+    const loadForms = async() => {
+        try{
+            const fetchedForms = ref(database, `feedbacks/${Id}`); //${Id}
+            const snapshot = await get(fetchedForms);
+            
+        if(snapshot.exists()){
+            const data = snapshot.val();
+            console.log("Fetched data from Firebase:", data);
+            setCertificateData(data);
+          } else {
+            console.error("No data available for this Id");
+          } 
+        } catch(error) {
+            console.error("Error fetching data from firebase:", error);
+          }
+        }
+loadForms();   
+},[Id])
+
+
+ const generateCertificate = () =>{ 
+    // setCertificateData();
+
     const doc = new jsPDF();
     doc.setFont("helvetica","normal");
 
     // title
     doc.setFontSize(22);
-    doc.text("Certificate of Workshop", 20,30);
+    doc.text("Certificate of Workshop", 20,30, {align:'center'});
 
     // student information
     doc.setFontSize(16);
@@ -33,58 +56,15 @@ const Certificate = ({collegeName,workshopName ,date ,time,studentName}:Certific
     doc.text(`from: ${collegeName}`,20,60 , {align:'center'});
     doc.text(`date: ${date}`, 20,50);
     doc.text(`time:${time}`, 20,60);
-    doc.text('Signature:_______' ,105,220,{align:'center'});
-    doc.save("certificate.pdf");
-    
-     // now save certificate data to firebase
-     const certificateData = {
-         studentName,
-         workshopName,
-         collegeName,
-         date,
-         time:db.ServerValue.TIMESTAMP,
-     };
+    doc.text('Authorized Signature:_______' ,105,220,{align:'center'});
+    doc.save(`${studentName}_Certificate.pdf`); //"certificate.pdf"
 
-    // save the PDF as a blob to upload to firebase storage
-    const pdfBlob = doc.output("blob");
-
-    // upload the PDF certificate to firebase Storage
-       const storageRef = storage.ref();
-       const certificateRef = storageRef.child(`certificates/${db.workshopId}_certificate.pdf`);
-       certificateRef.put(pdfBlob);
-
-       // save certificate data to firebase realtime database
-        //   const certificateRef = db.ref(`certificates/${workshopId}`);
-          certificateRef.set(certificateData)
-       .then(()=>{
-           console.log(`Certificate uploaded to firebase Storage.`);
-   
-           // After uploading the certificate,get the download URL
-           certificateRef.getDownloadURL().then((url:any) => {
-               console.log("Certificate URL:" , url);
-           });
-       })
-       .catch((error:any) =>{
-           console.error("Error uploading certificate:", error);
-       });
-       setLoading(false);
+    //  const pdfData = doc.output("datauristring");
     };
     return (
     <div>
         <h2>Certificate for Workshop</h2>
-        {formData? ( <div>
-            <p>Student Name : {studentName}</p>
-            <p>Workshop Name : {workshopName}</p>
-            <p>College Name : {collegeName}</p>
-            <p>Date Issued : {date}</p>
-            <p>Time : {time}</p>
-            <button onClick={() => generateCertificate} disabled={loading}>
-         {loading? 'Generating...' : 'Download Certificate'}
-     </button>
-        </div>
-     ):(
-        <p>No student data available.Please fill out the form first.</p>
-     ) } 
+          <button onClick={generateCertificate}> Download Certificate</button>
     </div>
   )
 }

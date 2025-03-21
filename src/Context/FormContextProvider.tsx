@@ -1,39 +1,33 @@
-import { ReactNode, useEffect, useState } from "react"
-import { FormContext, WorkshopData } from "./FormContext"
+import { ReactNode,  useState } from "react"
+import { FormContext, WorkshopData} from "./FormContext" 
 
 
 const FormContextProvider = ({children} : {children : ReactNode}) => {
+     const [formStatus, setFormStatus] = useState(false);
     const [formData, setFormData] = useState<WorkshopData>({
-    id:"",
-    collegename : "",
-    workshopname : "",
+    collegeName : "",
+    workshopName : "",
     date : "",
     time : "",
     instructions : "",
-    isActive : false,
-    link : "",
+    studentEmail :"",
     });
 
-    const addFormData=(data:WorkshopData)=>{
-      setFormData((prev) => ({...prev,...data, formData}));
-      
+    const updateFormData=(data:WorkshopData)=>{
+     setFormData(data); 
     }
 
     const toggleFormStatus=()=>{
-        setFormData((prevData) => ({...prevData, isActive: !prevData.isActive}));
+       setFormStatus((prevStatus) => !prevStatus); 
     };
    
-    useEffect(() =>{
-      setFormData(formData)
-     },[formData, setFormData]);
 
   return (
-    <div>
-        <FormContext.Provider value={{formData,addFormData,toggleFormStatus }}>
+    <FormContext.Provider value={{formData,updateFormData, toggleFormStatus,formStatus}}> 
            {children}
-        </FormContext.Provider>
-    </div>
+    </FormContext.Provider>
   )
 }
 
 export default FormContextProvider
+

@@ -1,115 +1,131 @@
 import {useForm} from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod';
-import {ref, set ,push } from 'firebase/database';
+import {ref, set} from 'firebase/database';
 import { database} from '../../config/Firebase';
 import {useFormDataContext } from '../../Context/FormContext';
 import { workshopschema, WorkshopSchema } from './schema/FormSchema';
-import {useNavigate} from 'react-router-dom'
-import Input from '../../Components/Input';
-import { useEffect } from 'react';
-import  {Emailjs}  from '../../Components/Emailjs';
+import { useEffect, useState } from 'react';
+import { SendEmailjs } from '../../Components/Emailjs';
 
 
 const AdminForm = () => {
-    const {formData,addFormData,toggleFormStatus} = useFormDataContext();
-    const navigate = useNavigate();
-    const {register, handleSubmit, formState:{errors}, reset} = useForm<WorkshopSchema>({
+    const {formData,updateFormData, toggleFormStatus,formStatus} = useFormDataContext();
+    const [formLink, setFormLink] = useState();
+    const {register, handleSubmit, formState:{errors},reset} = useForm<WorkshopSchema>({
         resolver:zodResolver(workshopschema), defaultValues:formData,
-    });
+    }); 
 
-    useEffect(() =>{
-    reset(formData);
-    },[formData,reset])
 
-   const onSubmit = async (data:WorkshopSchema)=>{ 
-    console.log(data);
-    const adminRef = ref(database, 'workshops');
-    // adminRef.push(data);
-    const newadminRef = push(adminRef); // push() to generates a new unique key
-    await set(newadminRef, data ,{...data, isActive:data.isActive})
-    newadminRef.set({...data, status: data.isActive})
-      .then(() =>{
-        if(data.isActive){
-          const workshopLink = `http://127.0.0.1:5173/l/workshop/${newadminRef.key}`; //${URL}
-          // send email
-          const emailSubject = 'Student Profile is Now Active!';
-          const emailMessage = `Hello, the student${data.name} is now active.You can view their profile using this Link: ${workshopLink}`;
-          Emailjs(data.email, emailSubject, emailMessage); //workshopLink
-          alert(`workshop link has been sent to : ${workshopLink}`);
-          alert('Data saved successfully!');
-          console.log(workshopLink);
-     }else{
-       alert("The student is not active, no link generated.");
+  const storeFormDataInFirebase = async (data: WorkshopSchema) => {
+    try {
+      const formId = Math.random().toString(36).substring(2, 15);
+      const generatedLink = `http://127.0.0.1:5173/feedback/${formId}`;
+      setFormLink(generatedLink);
+       // Add the generated link to the data object to be stored in Firebase
+       const formDataWithLink = {
+        ...data,
+        formStatus,
+        formLink: generatedLink, 
+        Id:formId,
+      };
+      const formRef = ref(database, 'workshops/' + formId); // Unique ID for each form
+      await set(formRef,formDataWithLink );
+      console.log("Form data saved to Firebase");
+      return generatedLink;
+    } catch (error:any) {
+      console.error("Error saving form data to Firebase:", error.message); 
     }
-    addFormData(data);
-    console.log(newadminRef);
-    })
-      .catch((error:any) => {
-      console.error("Error adding student:", error);
-      alert("Error adding student");
-      });
-      navigate('/studentform');
-    }
+  };
 
+
+  useEffect(() =>{
+    console.log("Form Status updated:" , formStatus);
+  },[formStatus]);
+
+
+  const onSubmit = async (data: WorkshopSchema) => {
+    console.log("Form data to be saved:", data);
+
+    // Update form data in context
+    updateFormData(data);
+
+    // Store the form data in Firebase only if the form is active
+    if (formStatus) {
+      try{
+      const generatedLink= await storeFormDataInFirebase(data);
+      
+      if(generatedLink){ 
+         toggleFormStatus();
+          reset();
+        await SendEmailjs(data, `${generatedLink}`, 'Workshop Profile Activation'); 
+        alert('Form saved successfully with unique link:' + generatedLink);
+      }
+      }
+   catch(error){
+      console.error("Error during form submission:", error)
+    }
+  }
+    else{
+      alert('Form is inactive. Please toggle the form status to active.');
+    }
+  };
+     
   return (
+    <div>
      <form onSubmit = {handleSubmit(onSubmit)}>
        <div className = 'space-y-5'>
-      <Input
-      label = "CollegeName"
-      name="collegeName"
-      register = {register}
-      type="text"
-      placeholder = "Enter College Name"
-      autoComplete = "off"
-      error = {errors.collegeName?.message}
-      />
-      <Input
-      label = "Workshop Name"
-      name="workshopName"
-      register = {register}
-      type="text"
-      placeholder = "Enter Workshop Name"
-      autoComplete = "off"
-      error = {errors.workshopName?.message}
-      />
-      <Input
-      label = "Date"
-      name="date"
-      register = {register}
-      type="date"
-      error = {errors.date?.message}
-      />
-      <Input
-      label = "Time"
-      name="time"
-      register = {register}
-      type="time"
-      error = {errors.time?.message}
-      />
-      <Input
-      label = "Instructions"
-      name="instructions"
-      register = {register}
-      type="textarea"
-      placeholder = "Enter Your instructions about your workshop"
-      autoComplete = "off"
-      error = {errors.instructions?.message}
-      />
-      <label>Status:</label>
-      <button type="button" onClick={toggleFormStatus}>
-        {formData.isActive? 'Set inactive' : 'Set Active'}
-      </button>
-      <div className="flex space-x-2 md:space-x-8  justify-center">
-      <button type="submit" className="text-bold bg-blue-200 px-4 py-2 rounded-lg bg-blue-200 p-20">Create Workshop</button> &nbsp;
-      <button onClick={() => navigate("/dashboard")} className=" text-bold bg-blue-200 px-4 py-2 rounded-lg bg-blue-200 p-20">Back To Dashboard</button>    
-      </div>
-      </div>  
-    </form>
+       <label>CollegeName</label> &nbsp;
+    <input {...register('collegeName')} type="text" placeholder="enter your CollegeName"
+    className="w-full border border-black/10 rounded-lg px-3 outline-none duration-150 bg-white/20 py-1.5 m-2"/>
+    {errors.collegeName && <p style = {{color:'red'}}>{errors.collegeName.message}</p>}
+    <br/>   
+    <label>WorkshopName</label>  &nbsp;
+    <input {...register('workshopName')} type="text" placeholder="enter Workshop Name"
+    className="w-full border border-black/10 rounded-lg px-3 outline-none duration-150 bg-white/20 py-1.5 m-2"/>
+    {errors.workshopName && <p style = {{color:'red'}}>{errors.workshopName.message}</p>}
+    <br/>   
+    <label>Student Email</label>  &nbsp;
+    <input {...register('studentEmail')} type="email" placeholder="enter Your Email Id"
+    className="w-full border border-black/10 rounded-lg px-3 outline-none duration-150 bg-white/20 py-1.5 m-2"/>
+    {errors.studentEmail  && <p style = {{color:'red'}}>{errors.studentEmail .message}</p>}
+    <br/>
+    <label>Date</label> &nbsp;
+    <input {...register('date')} type = "date"
+    className="w-full border border-black/10 rounded-lg px-3 outline-none duration-150 bg-white/20 py-1.5 m-2"/> 
+    {errors.date && <p style = {{color:'red'}}>{errors.date.message}</p>}
+     <br/>
+     <label>Time</label> &nbsp;
+    <input {...register('time')} type = "time"
+    className="w-full border border-black/10 rounded-lg px-3 outline-none duration-150 bg-white/20 py-1.5 m-2"/> 
+    {errors.time && <p style = {{color:'red'}}>{errors.time.message}</p>}
+     <br/>
+     <label>Instrucation</label> &nbsp;
+    <input {...register('instructions')} type = "textarea" placeholder="say something about workshop"
+    className="w-full border border-black/10 rounded-lg px-3 outline-none duration-150 bg-white/20 py-1.5 m-2"/> 
+    {errors.instructions && <p style = {{color:'red'}}>{errors.instructions.message}</p>}
+     <br/>
+    <label>Form Status</label> &nbsp;
+       <input
+       type = "checkbox"
+       checked = {formStatus}
+       onChange = {toggleFormStatus}
+       />&nbsp;
+       <span>{formStatus ? "Active" : "Inactive"}</span>
+       &nbsp;
+       <br/>
+         
+     {formLink && ( 
+       <div>
+        <h3>Form Created</h3>
+        <p>Form Link:<a href={formLink} target="_blank" rel="noopener noreferrer">{formLink}</a></p> 
+       </div>
+       )} 
+
+      <button type = "submit" disabled={!formStatus}>Submit</button>
+        </div>
+        </form>
+       </div>
   )
 }
-
-export default AdminForm
-
-
-
-
+export default AdminForm;
+     

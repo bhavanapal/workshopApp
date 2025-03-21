@@ -1,7 +1,7 @@
 import { AuthContext } from "./AuthContext"
 import {User,createUserWithEmailAndPassword, signInWithEmailAndPassword,onAuthStateChanged} from "firebase/auth";
 import{doc, setDoc, getDoc} from 'firebase/firestore';
-import {auth,db} from '../config/Firebase'; //db=firestore
+import {auth,db} from '../config/Firebase'; 
 import { ReactNode, useEffect, useState } from "react";
 
 const AuthContextProvider = ({children} : {children : ReactNode}) => {
@@ -18,11 +18,6 @@ const AuthContextProvider = ({children} : {children : ReactNode}) => {
         return()=> unsubscribe();
     },[])
 
-    // useEffect(() => {
-    //  if(user){
-    //   fetchUserRole(user.uid).then(setRole);
-    //  }
-    // },[user]);
 
     // signup
     const signUp = async(email : string , password : string, role:string) =>{

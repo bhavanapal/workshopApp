@@ -2,7 +2,7 @@
 import { initializeApp } from "firebase/app";
 import {getAuth} from "firebase/auth";
 import {getFirestore} from "firebase/firestore";
-import {getDatabase } from "firebase/database";
+import {getDatabase} from "firebase/database";
 import {getStorage} from"firebase/storage";
 // TODO: Add SDKs for Firebase products that you want to use
 // https://firebase.google.com/docs/web/setup#available-libraries
@@ -28,7 +28,5 @@ export const db = getFirestore(app ,{
    useFetchStreams:false,
 })
 export default app;
-
-
 
 

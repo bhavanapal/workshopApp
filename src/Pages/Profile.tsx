@@ -1,5 +1,6 @@
 import Conatiner from "../Components/Conatiner"
-import StudentProfile from "../modules/student/StudentProfile"
+import FeedbackForm from "../modules/student/FeedbackForm"
+
 
 
 const Profile = () => {
@@ -13,7 +14,7 @@ const Profile = () => {
         </div>
         <div className="flex items-center justify-center">
         <div className="mx-auto w-full max-w-lg bg-gray-100 rounded-xl p-10 border border-black/10 py-8">
-        <StudentProfile/>
+        <FeedbackForm/> 
       </div>
       </div>
     </Conatiner>
