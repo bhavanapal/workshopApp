@@ -4,24 +4,23 @@ import {useParams} from "react-router-dom";
 import { database } from "../../config/Firebase";
 import {ref, set,get} from 'firebase/database';
 import { studentschema, StudentSchema } from "./schema/StudentSchema";
-import { useEffect, useState } from "react";
+import {useEffect, useState } from "react";
 import {useNavigate} from 'react-router-dom'
 import { SendEmailjs } from '../../Components/Emailjs';
 import Certificate from "../../Components/Certificate";
 import Conatiner from "../../Components/Conatiner";
 
 
-
 const FeedbackForm = () => {
     const[formDetails, setFormDetails] = useState<any>(null);
-    const[studentData, setStudentData] = useState<StudentSchema>();
+    const[studentData, setStudentData] = useState<StudentSchema>('');
     const[verificationCode, setVerificationCode] = useState("");
     const[isOtpVerified , setIsOtpVerified] = useState<boolean>(false);
     const[email, setEmail] = useState('');
     const [otp, setOtp] = useState('');
     const [otpSent, setOtpSent] = useState(false);
     const[submited, setSubmited] = useState<boolean>(false)
-    const {control, handleSubmit, formState : {errors}, reset} = useForm<StudentSchema>({
+    const {control,handleSubmit, formState : {errors}, reset} = useForm<StudentSchema>({
      resolver : zodResolver(studentschema), defaultValues: formDetails,
     });
     const {Id} = useParams(); // for dynamic routing
@@ -70,7 +69,7 @@ useEffect(() => {
 loadForms();   
 },[Id])
 
-const storeFormDataInFirebase = async (data:StudentSchema ) => { 
+const storeFormDataInFirebase = async (data:StudentSchema) => { 
   try {
      const formId = Math.random().toString(36).substring(2, 15);
        const generatedLink = `http://127.0.0.1:5173/certificate/${formId}`; 
@@ -78,6 +77,7 @@ const storeFormDataInFirebase = async (data:StudentSchema ) => {
      const formDataWithLink = {
       ...data,
       ...formDetails,
+      ...studentData,
        formLink: generatedLink, 
        Id:formId,
     };
@@ -106,7 +106,7 @@ const onSubmit = async(data : StudentSchema) =>{
       setStudentData(data);
       setSubmited(true);
       alert("Thank you for your feedback!");
-       navigate(`/certificate/:Id`)
+       navigate(`/certificate/${Id}`)
        };
     } catch(error){
     console.error("Error during form submission:", error)
@@ -138,18 +138,20 @@ if(!formDetails){
 
         <div>
             <label className ='inline-block m-4 pl-1'>Student Name</label>&nbsp;
+            
             <Controller
              name = "studentName"
              control={control}
              render = {({field}) => <input {...field}/>}
              className="w-full border border-black/10 rounded-lg px-3 outline-none duration-150 bg-white/20 py-1.5 m-2"
             />
-            {errors.studentName && <p>{errors.studentName.message}</p>}
+           {errors.studentName && <p>{errors.studentName.message}</p>}
            
         </div>
           <br/>
         <div>
             <label className ='inline-block mb-1 pl-1'>Course</label>&nbsp;
+           
             <Controller
              name = "course"
              control={control}
@@ -163,6 +165,7 @@ if(!formDetails){
 
           <div>
             <label className ='inline-block mb-1 pl-1'>Email</label>
+            
             <Controller
              name = "email"
              control={control}
@@ -181,10 +184,10 @@ if(!formDetails){
               <label className ='inline-block mb-1 pl-1'>Enter OTP sent to your Email</label>
               <input
                type = "text"
-               placeholder = "Enter OTP"
+               placeholder = "Enter Your OTP"
                value = {verificationCode}
                onChange = {(e:React.FormEvent) => setVerificationCode(e.target.value)}
-               className="w-full border border-black/10 rounded-lg px-3 outline-none duration-150 bg-white/20 py-1.5 m-2"
+              className="w-full border border-black/10 rounded-lg px-3 outline-none duration-150 bg-white/20 py-1.5 m-2"
               />
               <button type="button" onClick = {handleEmailVerification}>Verify OTP</button>
               </>
@@ -192,7 +195,7 @@ if(!formDetails){
           </div> 
     
         <div>
-            <label className ='inline-block mb-1 pl-1'>Feedback</label>&nbsp;
+              <label className ='inline-block mb-1 pl-1'>Feedback</label>&nbsp;
             <Controller
              name = "feedback"
              control={control}
@@ -211,7 +214,8 @@ if(!formDetails){
         )}
         <div className="w-full py-8 mt-4 text-center">
      <Conatiner>
-     {submited && studentData && formDetails &&(
+     {submited && studentData && formDetails && (
+    
             <Certificate
             studentName = {studentData.studentName}
             workshopName = {formDetails.workshopName}

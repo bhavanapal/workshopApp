@@ -1,7 +1,7 @@
 import {jsPDF} from "jspdf";
 import { useEffect, useState } from "react";
 import {useParams} from "react-router-dom";
-import {ref, get} from 'firebase/database';
+import {ref, get, set} from 'firebase/database';
 import { database } from "../config/Firebase";
 
 type CertificateType={
@@ -12,13 +12,15 @@ type CertificateType={
     studentName : string;
 }
 
-const Certificate = ({collegeName,workshopName ,date ,time,studentName}:CertificateType) => { 
-const [certificate, setCertificateData] = useState<any>();
-const {Id} = useParams();
+const Certificate = ({collegeName,workshopName ,date ,time,studentName}: CertificateType) => { 
+const[certificateData,setCertificateData] = useState();
+ const {Id} = useParams();
+console.log("certificate link Id:", Id);
 
 
 // fetch the certificate data from firebase
 useEffect(() => {
+  if(Id){
     const loadForms = async() => {
         try{
             const fetchedForms = ref(database, `feedbacks/${Id}`); //${Id}
@@ -33,40 +35,72 @@ useEffect(() => {
           } 
         } catch(error) {
             console.error("Error fetching data from firebase:", error);
-          }
-        }
-loadForms();   
+          } 
+        };
+loadForms(); 
+} else{
+  console.error("No Id provided in the URL");
+}  
 },[Id])
 
 
  const generateCertificate = () =>{ 
-    // setCertificateData();
+  // if(!certificateData){
+  //   alert("No data available to generate the certificate.");
+  //   return;
+  // }
 
     const doc = new jsPDF();
     doc.setFont("helvetica","normal");
 
     // title
     doc.setFontSize(22);
-    doc.text("Certificate of Workshop", 20,30, {align:'center'});
+    doc.text("Certificate of Workshop", 105,40,{align:'center'}); //20,30
 
     // student information
     doc.setFontSize(16);
-    doc.text(`This is to certifies that ${studentName}`, 20, 50 , {align:'center'});
-    doc.text(`has successfully completed the Workshop: ${workshopName}`,20,60 , {align:'center'});
-    doc.text(`from: ${collegeName}`,20,60 , {align:'center'});
-    doc.text(`date: ${date}`, 20,50);
-    doc.text(`time:${time}`, 20,60);
-    doc.text('Authorized Signature:_______' ,105,220,{align:'center'});
-    doc.save(`${studentName}_Certificate.pdf`); //"certificate.pdf"
+    doc.text(`This is to certifies that ${studentName}`, 105, 70 ,{align:'center'});
+    doc.text(`has successfully completed the Workshop: ${workshopName}`,105, 70 ,{align:'center'});
+    doc.text(`from: ${collegeName}`,105, 70 , {align:'center'}); //20,60
+    doc.text(`date: ${date}`, 105, 150 ,'center'); //20,50
+    doc.text(`time:${time}`,105, 150 ,'center');
+    doc.text('Authorized Signature:_______' ,105,220, {align:'center'});
+   const pdfName = (`${studentName}_Certificate.pdf`); //"certificate.pdf"
+   doc.save(pdfName);
+      // const pdfData = doc.output("datauristring");
+      console.log(pdfName);
 
-    //  const pdfData = doc.output("datauristring");
-    };
+      // save certificate data in firebase
+    //   const certificateRef = ref(database, 'certificates/' + Id);
+    //   set(certificateRef,{
+    //     studentName,
+    //     workshopName,
+    //     date,time,
+    //     CertificateUrl : pdfName,
+    //     timeStamp: new Date().toISOString(),
+    //   }).then(() => {
+    //     alert("Certificate generated and saved!");
+    //   }).catch((error:any) =>{
+    //     console.log("Error saving certificate data:",error);
+    //   });
+    // };
+
+    // if(loading){
+    //   return <div>Loading certificate data...</div>
+    // }
+
+    // if(!certificateData){
+    //   return <div>No data found for this certificate.</div>;
+    // }
+ }
+
     return (
     <div>
-        <h2>Certificate for Workshop</h2>
+        <h2>Certificate for Workshop </h2>
           <button onClick={generateCertificate}> Download Certificate</button>
     </div>
   )
+
 }
 
 export default Certificate
